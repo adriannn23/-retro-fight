@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Retro Fight</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#111;
+    font-family:Arial, sans-serif;
+}
+canvas{
+    display:block;
+    width:100vw;
+    height:100vh;
+    image-rendering: pixelated;
+}
+#controls{
+    position:fixed;
+    bottom:20px;
+    left:0;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    pointer-events:none;
+}
+.pad, .actions{
+    display:flex;
+    gap:10px;
+    padding:20px;
+    pointer-events:auto;
+}
+.btn{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.2);
+    border:2px solid rgba(255,255,255,0.5);
+    color:white;
+    font-size:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    user-select:none;
+    touch-action:none;
+}
+.small{
+    width:60px;
+    height:60px;
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="controls">
+    <div class="pad">
+        <div class="btn" id="left">◀</div>
+        <div class="btn" id="right">▶</div>
+    </div>
+    <div class="actions">
+        <div class="btn small" id="punch">P</div>
+        <div class="btn small" id="kick">K</div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+const player = {
+    x: 150,
+    y: canvas.height - 250,
+    w: 80,
+    h: 160,
+    color: "#c9a36b",
+    hp: 100,
+    attacking: false
+};
+
+const enemy = {
+    x: canvas.width - 250,
+    y: canvas.height - 250,
+    w: 80,
+    h: 160,
+    color: "#2f7d32",
+    hp: 100,
+    dir: -1
+};
+
+const keys = {left:false,right:false};
+
+function touchBtn(id, key){
+    const el = document.getElementById(id);
+    el.addEventListener("touchstart", e => {
+        e.preventDefault();
+        keys[key] = true;
+    });
+    el.addEventListener("touchend", e => {
+        e.preventDefault();
+        keys[key] = false;
+    });
+}
+
+touchBtn("left", "left");
+touchBtn("right", "right");
+
+document.getElementById("punch").addEventListener("touchstart", e=>{
+    e.preventDefault();
+    attack(10);
+});
+document.getElementById("kick").addEventListener("touchstart", e=>{
+    e.preventDefault();
+    attack(18);
+});
+
+function attack(damage){
+    player.attacking = true;
+    if(Math.abs(player.x - enemy.x) < 140){
+        enemy.hp -= damage;
+    }
+    setTimeout(()=>player.attacking=false,200);
+}
+
+function drawBackground(){
+    const g = ctx.createLinearGradient(0,0,0,canvas.height);
+    g.addColorStop(0,"#333");
+    g.addColorStop(1,"#111");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "#555";
+    for(let i=0;i<10;i++){
+        ctx.fillRect(i*180, canvas.height-280, 120, 180);
+    }
+}
+
+function drawFighter(f){
+    ctx.fillStyle = f.color;
+    ctx.fillRect(f.x, f.y, f.w, f.h);
+
+    ctx.fillStyle = "#000";
+    ctx.fillRect(f.x+20, f.y+30, 40, 10);
+
+    if(f===player && player.attacking){
+        ctx.fillStyle = "orange";
+        ctx.fillRect(f.x+f.w, f.y+50, 40, 20);
+    }
+}
+
+function drawUI(){
+    ctx.fillStyle = "red";
+    ctx.fillRect(40,40,300,25);
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(40,40,player.hp*3,25);
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(canvas.width-340,40,300,25);
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(canvas.width-340,40,enemy.hp*3,25);
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 40px Arial";
+    ctx.fillText("99", canvas.width/2 - 20, 70);
+}
+
+function update(){
+    if(keys.left) player.x -= 6;
+    if(keys.right) player.x += 6;
+
+    player.x = Math.max(0, Math.min(canvas.width-player.w, player.x));
+
+    if(enemy.hp > 0){
+        if(enemy.x > player.x + 120) enemy.x -= 1.5;
+        if(Math.abs(enemy.x-player.x)<120 && Math.random()<0.01){
+            player.hp -= 5;
+        }
+    }
+
+    if(player.hp <= 0 || enemy.hp <= 0){
+        ctx.fillStyle = "white";
+        ctx.font = "bold 70px Arial";
+        ctx.fillText(player.hp<=0 ? "YOU LOSE" : "YOU WIN", canvas.width/2-180, canvas.height/2);
+    }
+}
+
+function loop(){
+    drawBackground();
+    update();
+    drawFighter(player);
+    drawFighter(enemy);
+    drawUI();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
